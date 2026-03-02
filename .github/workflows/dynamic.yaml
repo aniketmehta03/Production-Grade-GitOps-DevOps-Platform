@@ -1,0 +1,48 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+      - feature/app-deployment
+    paths:
+      - Dockerfile
+      - "*.py"
+      - requirements.txt
+
+
+permissions:
+  contents: write
+
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/fastapi-production:${{ github.sha }} .
+
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/fastapi-production:${{ github.sha }}
+
+      - name: Update Helm Value.yaml
+        run: |
+          sed -i "s/tag:.*/tag: ${{ github.sha }}/" crud-app/values.yaml
+
+      - name: Commit helm update
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add crud-app/values.yaml
+          git commit -m "Update image tag to ${{ github.sha }}" || echo "No changes"
+          git push

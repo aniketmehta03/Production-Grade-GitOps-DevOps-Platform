@@ -5,7 +5,7 @@ backend:
     pullPolicy: Always
 
   # match your manifest defaults
-  replicas: 3
+  replicas: 5
   port: 8000
 
   resources:
