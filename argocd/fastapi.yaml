@@ -7,13 +7,18 @@ spec:
   project: default
   source:
     repoURL: https://github.com/aniketmehta03/Production-Grade-GitOps-DevOps-Platform.git
-    targetRevision: main
-    path: argocd-demos/declarative_approach/online_shop
+    targetRevision: feature/app-deployment
+    path: crud-app
+    helm:
+      valueFiles:
+        - values.yaml            # use the chart's default values
+      parameters:
+        - name: namespace        # override value if needed
+          value: production
   destination:
     server: https://kubernetes.default.svc   # Replace with your Cluster Url, To get run: `argocd cluster list`
-    namespace: default
+    namespace: production         # deploy into production namespace
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    
