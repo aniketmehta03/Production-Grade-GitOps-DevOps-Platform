@@ -1,239 +1,134 @@
-# 🚀 Production-Grade DevOps CRUD Application (Ubuntu Setup)
-
-## 🎯 Problem Statement
-
-Design, build, containerize, deploy, automate, operate, and monitor a **production-grade CRUD web application** using modern DevOps practices.
-
-The system must be:
-
-- ✅ Fully Containerized
-- ✅ Kubernetes Deployed
-- ✅ Helm Managed
-- ✅ CI/CD Automated
-- ✅ GitOps Controlled
-- ✅ Cloud Provisioned using Terraform
-- ✅ Fully Monitored using Prometheus, Grafana & Loki
-
----
-
-# 🧱 Application Requirements
-
-## 1️⃣ Application Layer
-
-Build a CRUD application:
-
-- Backend: Node.js / Python / Go
-- Frontend: Optional (UI or API-only)
-- Database: PostgreSQL
-
-### Features
-
-- Create record
-- Read record
-- Update record
-- Delete record
-- Persistent database storage
-
-### Expose
-
-- REST APIs
-
----
-
-# 🐳 Containerization Layer
-
-## 2️⃣ Docker
-
-Requirements:
-
-- Multi-stage Dockerfile
-- Alpine base images
-- Use `.dockerignore`
-- Use ENV variables for configs
-- Run as non-root user
-- Small optimized image size
-
----
-
-# 🧩 Local Orchestration
-
-## 3️⃣ Docker Compose
-
-Create `docker-compose.yaml` including:
-
-- backend
-- postgres
-
-Must include:
-
-- volumes
-- networks
-- environment variables
-- depends_on
-
-Support:
-
-- Hot reload development mode
-
-
----
-
-# ☸️ Kubernetes Layer
-
-## 5️⃣ Kubernetes
-
-Write YAML manifests for:
-
-- Backend Deployment
-- PostgreSQL StatefulSet + PVC
-- Services
-- Ingress
-
-Use:
-
-- Secrets
-- ConfigMaps
-
-Must demonstrate:
-
-- Scaling
-- Rollbacks
-- Zero downtime rollout
-
----
-
-# 📦 Helm Layer
-
-## 6️⃣ Helm
-
-Create a generic Helm chart:
-
-- Capable of deploying ANY backend
-
-Convert:
-
-- All Kubernetes YAML → Helm templates
-
-Use:
-
-- values.yaml
-- Environment-specific values files
-
----
-
-# 🔁 CI/CD Automation
-
-## 7️⃣ GitHub Actions
-
-### Pipeline A (main branch)
-
-- Build Docker image
-- Tag image
-- Push to DockerHub / ECR
-
-### Pipeline B (feat/* or Dockerfile change)
-
-- Build new image
-- Push image
-- Auto-update `helm/values.yaml` image tag
-- Commit changes back to repo
-
----
-
-# 🔄 GitOps Deployment
-
-## 8️⃣ ArgoCD
-
-Install ArgoCD using YAML.
-
-Create:
-
-- ArgoCD Project
-- ArgoCD Application
-
-ArgoCD must:
-
-- Auto Sync
-- Auto Heal
-- Auto Rollback
-
-❌ No manual `kubectl apply` allowed
-
----
-
-# ☁️ Infrastructure as Code
-
-## 9️⃣ Terraform
-
-Provision:
-
-- VPC
-- Subnets
-- Internet Gateway
-- NAT Gateway
-- EC2
-- S3
-- IAM Role
-- ECR
-- EKS or ECS
-
-Must use:
-
-- Terraform Modules
-- Remote State (S3 + DynamoDB)
-- Variables
-
----
-
-# 📊 Observability Stack
-
-## 🔟 Monitoring
-
-Install using Helm:
-
-- Prometheus
-- Grafana
-- Loki
-
-Must display:
-
-- CPU usage
-- Memory usage
-- Pod count
-- Application logs
-
-Create Alerts:
-
-- High CPU usage
-- Pod crash
-
----
-
-# 📐 Architecture & Documentation
-
-## 1️⃣1️⃣ Required Deliverables
-
-You must submit:
-
-- Architecture Diagram
-- CI/CD Flow Diagram
-- GitOps Flow Diagram
-- Incident Response Documentation
-
----
-
-# 🏁 Final Output Expectations
-
+# Production-Grade DevOps CRUD Application
+
+A concise, production-minded reference for building, testing, and deploying the FastAPI CRUD backend for a book‑store service. Everything needed for local development, image builds, Helm chart deployment, and GitOps is in this repo.
+
+Contents
+- `Dockerfile`, `.dockerignore` — production-ready container image definition
+- `docker-compose.yaml` — local multi-service orchestraton (backend + Postgres)
+- `crud-app/` — Helm chart for Kubernetes deployments (includes namespace template)
+- `.github/workflows/` — CI/CD pipelines (`build.yaml` for main and `dynamic.yaml` for features)
+- `terraform/` — IaC modules and top-level configs
+- `kubernetes/` — Kubernetes manifests (reference/backups)
+
+Quick start — Local (Docker)
+1. Build image:
+```bash
+docker build -t aniket036/fastapi-production:local .
 ```
-Git Push
-   ↓
-CI Pipeline
-   ↓
-Docker Image Build
-   ↓
-Helm Values Update
-   ↓
-Kubernetes Deployment
-   ↓
-Metrics & Logs Visible
+2. Run with Docker Compose:
+```bash
+docker compose up -d
+docker compose logs -f
 ```
+
+Kubernetes & Helm (quick)
+- Lint the chart:
+```bash
+helm lint crud-app
+```
+- Render templates locally:
+```bash
+helm template crud-app crud-app -f crud-app/values.yaml
+```
+- Install / upgrade:
+```bash
+helm upgrade --install crud crud-app -f crud-app/values.yaml
+```
+
+CI/CD (GitHub Actions)
+- Workflows:
+  - `build.yaml` — triggers on `push` to `main`, builds and pushes production images.
+  - `dynamic.yml` — triggers on feature branches (e.g. `feat/*`, `feature/*`) and relevant path changes; builds images, pushes, and optionally auto‑updates `crud-app/values.yaml` with the new image tag.
+- Required repository secrets:
+  - `DOCKER_USERNAME` — Docker registry username
+  - `DOCKER_PASSWORD` — Docker registry password or token
+
+🔄 **GitOps Deployment (ArgoCD)**
+
+This repository is designed to support a GitOps workflow powered by ArgoCD. The
+basic expectations are:
+
+1. Install ArgoCD into your cluster with the official manifests:
+   ```sh
+   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+   ```
+2. Create an **ArgoCD Project** (e.g. `default` or `crud-app`) that scopes the
+   repository/destination combinations you need.
+3. Create an **ArgoCD Application** pointing at this repo's `crud-app` Helm
+   chart path. Example snippet (see `argocd/fastapi.yaml` in this repo):
+   ```yaml
+   apiVersion: argoproj.io/v1alpha1
+   kind: Application
+   metadata:
+     name: fastapi
+     namespace: argocd
+   spec:
+     project: default
+     source:
+       repoURL: https://github.com/aniketmehta03/Production-Grade-GitOps-DevOps-Platform.git
+       targetRevision: main          # or feature branch for testing
+       path: crud-app
+       helm:
+         valueFiles:
+           - values.yaml
+         parameters:
+           - name: namespace
+             value: production
+     destination:
+       server: https://kubernetes.default.svc
+       namespace: production
+     syncPolicy:
+       automated:
+         prune: true
+         selfHeal: true
+   ```
+
+The application is expected to manage all the resources for the service including
+its own namespace (see `crud-app/templates/namespace.yaml`).
+
+ArgoCD must be configured so that:
+- ✅ **Auto‑sync** is enabled – changes pushed to Git trigger deployments.
+- ✅ **Self‑heal** (auto‑heal) is enabled – drift in cluster state is corrected.
+- ✅ **Auto‑rollback** is enabled (via the `rollback` option in sync policy)
+- ❌ **No manual `kubectl apply`** commands are used for production objects; all
+  desired state lives in Git and ArgoCD applies it automatically.
+  (You may still use `kubectl` for debugging or cluster bootstrap.)
+
+When a feature branch is pushed, ArgoCD can target that branch for preview
+deployments; merging to `main` then becomes the production release path.
+
+The `dynamic.yml` workflow helps by updating `crud-app/values.yaml` with the
+new image tag on each build, effectively locking the desired container image to
+the Git state that ArgoCD watches.
+
+Infrastructure (Terraform)
+- Location: `terraform/` with modular layout under `terraform/modules/` (network, ec2, eks, iam, s3, ecr).
+- IMPORTANT: If a module variable has no default, create a `terraform.tfvars` in the `terraform/` root or pass `-var-file` at apply time.
+
+Example `terraform.tfvars` snippet (fill before `terraform apply`):
+```hcl
+region = "ap-south-1"
+bucket_name = "my-crud-app-bucket-unique"
+repository_name = "crud-api"
+eks_cluster_name = "crud-eks-cluster"
+```
+
+Monitoring & Observability
+- Recommended stack (Helm): `kube-prometheus-stack` (Prometheus + Alertmanager + Grafana) and `loki-stack` (Loki + Promtail).
+- Example PrometheusRule alerts include high CPU and Pod crash-loop detection. Install these into a `monitoring` namespace.
+
+Diagrams & Documentation
+- Architecture diagram: `docs/architecture.png` (rendered architecture overview)
+- CI/CD flow diagram: `docs/cicd-flow.png`
+
+If you need editable sources, I can export the Excalidraw JSON into `diagrams/` and produce PNG/SVG exports.
+
+Contributing
+- Open a PR for changes. For CI/CD and infra changes, include validation steps (Helm lint, Terraform plan).
+
+What I can do next
+- Export the architecture and CI/CD diagrams as PNG/SVG and add them to `docs/` for immediate viewing.
+- Run quick validation steps (helm lint, terraform fmt) locally and report output.
+
+---
+
