@@ -4,11 +4,12 @@ on:
   push:
     branches:
       - main
-      - feature/app-deployment
+      - 'feature/*'
     paths:
       - Dockerfile
-      - "*.py"
+      - '**/*.py'
       - requirements.txt
+      - 'crud-app/**'
 
 
 permissions:
