@@ -58,7 +58,7 @@ def readiness(db: Session = Depends(get_db)):
     """
     try:
         # simple lightweight query
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
     except Exception:
         raise HTTPException(status_code=503, detail="database unavailable")
     return {"status": "ready"}
