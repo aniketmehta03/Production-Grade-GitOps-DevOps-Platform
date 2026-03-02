@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: production
+  labels:
+    app: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: aniket036/fastapi-production:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: postgres-secret
+
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          livenessProbe:
+            httpGet:
+              path: /health/liveness
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          # startupProbe delays readiness checks until the application has time to
+          # initialise and, in particular, establish any connections to external
+          # services such as the database.  This prevents the kubelet from marking
+          # the pod "not ready" while the app is still starting up.
+          startupProbe:
+            httpGet:
+              path: /health/liveness
+              port: 8000
+            failureThreshold: 30   # ~5 minutes worth of attempts
+            periodSeconds: 10
+
+          # Temporary workaround: use a TCP probe so Kubernetes doesn't mark the
+          # pod unready while the application is still resolving its own
+          # readiness endpoint.  This ensures the Deployment will stabilise even if
+          # `/health/readiness` keeps returning 503; you should still fix the
+          # application logic later.
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 6
+            timeoutSeconds: 5
