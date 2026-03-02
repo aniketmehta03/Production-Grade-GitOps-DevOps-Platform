@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://devops:devops123@localhost:5432/bookstore"  # fallback for local
+    "postgresql://devops:devops123@postgres:5432/bookstore"  # fallback for local
 )
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
