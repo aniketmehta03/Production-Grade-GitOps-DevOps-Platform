@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  {{- if .Values.namespace }}
+  namespace: {{ .Values.namespace }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+        imagePullPolicy: {{ .Values.backend.image.pullPolicy | default "IfNotPresent" }}
+        envFrom:
+          - configMapRef:
+              name: backend-config
+          - secretRef:
+              name: {{ .Values.postgres.secretName | default "postgres-secret" }}
+        ports:
+        - containerPort: {{ .Values.backend.port }}
+        resources:
+{{ toYaml .Values.backend.resources | indent 10 }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.backend.probes.liveness.path }}
+            port: {{ .Values.backend.port }}
+          initialDelaySeconds: {{ .Values.backend.probes.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.probes.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.backend.probes.liveness.failureThreshold }}
+          timeoutSeconds: {{ .Values.backend.probes.liveness.timeoutSeconds }}
+{{- if .Values.backend.probes.startup.enabled }}
+        startupProbe:
+          httpGet:
+            path: {{ .Values.backend.probes.startup.path }}
+            port: {{ .Values.backend.port }}
+          failureThreshold: {{ .Values.backend.probes.startup.failureThreshold }}
+          periodSeconds: {{ .Values.backend.probes.startup.periodSeconds }}
+{{- end }}
+        readinessProbe:
+{{- if .Values.backend.probes.readiness.tcp }}
+          tcpSocket:
+            port: {{ .Values.backend.port }}
+          initialDelaySeconds: {{ .Values.backend.probes.readiness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.probes.readiness.periodSeconds }}
+          failureThreshold: {{ .Values.backend.probes.readiness.failureThreshold }}
+          timeoutSeconds: {{ .Values.backend.probes.readiness.timeoutSeconds }}
+{{- else }}
+          httpGet:
+            path: {{ .Values.backend.probes.readiness.path }}
+            port: {{ .Values.backend.port }}
+          initialDelaySeconds: {{ .Values.backend.probes.readiness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.probes.readiness.periodSeconds }}
+          failureThreshold: {{ .Values.backend.probes.readiness.failureThreshold }}
+          timeoutSeconds: {{ .Values.backend.probes.readiness.timeoutSeconds }}
+{{- end }}

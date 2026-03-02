@@ -1,0 +1,67 @@
+backend:
+  image:
+    repository: aniket036/fastapi-production
+    tag: v1
+    pullPolicy: Always
+
+  # match your manifest defaults
+  replicas: 3
+  port: 8000
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  probes:
+    liveness:
+      path: /health/liveness
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      failureThreshold: 3
+      timeoutSeconds: 5
+    readiness:
+      # use TCP readiness by default to match the manifest workaround
+      path: /health/readiness
+      initialDelaySeconds: 20
+      periodSeconds: 10
+      failureThreshold: 6
+      timeoutSeconds: 5
+      tcp: true          # set true to use TCP check instead of HTTP
+    startup:
+      enabled: true      # enable startup probe to delay readiness checks
+      path: /health/liveness
+      failureThreshold: 30
+      periodSeconds: 10
+
+# namespace to render in templates (Helm also honors --namespace on install)
+namespace: production
+
+postgres:
+  secretName: postgres-secret
+  image: postgres:14-alpine
+  storage: 2Gi
+  db:
+    name: bookstore
+    user: devops
+    password: devops123
+service:
+  type: ClusterIP
+  port: 80
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+ingress:
+  enabled: true
+  host: crud.local
+
+backendConfig:
+  DB_HOST: postgres
+  DB_PORT: "5432"
