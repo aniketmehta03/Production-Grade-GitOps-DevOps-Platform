@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fastapi
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/aniketmehta03/Production-Grade-GitOps-DevOps-Platform.git
+    targetRevision: main
+    path: argocd-demos/declarative_approach/online_shop
+  destination:
+    server: https://kubernetes.default.svc   # Replace with your Cluster Url, To get run: `argocd cluster list`
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    
